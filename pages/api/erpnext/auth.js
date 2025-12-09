@@ -1,6 +1,56 @@
 import { Novu } from '@novu/api';
 import { ChatOrPushProviderEnum } from "@novu/api/models/components";
 
+async function createOrUpdateNovuSubscriber({ subscriberId, firstName, lastName, email, phone, novuSecretKey }) {
+  if (!subscriberId || !novuSecretKey) return;
+
+  const headers = {
+    Authorization: `ApiKey ${novuSecretKey}`,
+    'Content-Type': 'application/json',
+    'idempotency-key': subscriberId
+  };
+
+  const payload = {
+    subscriberId,
+    firstName,
+    lastName,
+    email,
+    phone
+  };
+
+  // Create (ignore if already exists via failIfExists flag)
+  try {
+    const createRes = await fetch(`https://api.novu.co/v2/subscribers?failIfExists=true`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!createRes.ok && createRes.status !== 409) {
+      const errText = await createRes.text();
+      console.warn('⚠️ Novu subscriber create failed:', createRes.status, errText);
+    }
+  } catch (err) {
+    console.warn('⚠️ Novu subscriber create exception:', err);
+  }
+
+  // Update to ensure latest profile data
+  try {
+    const updateRes = await fetch(`https://api.novu.co/v2/subscribers/${encodeURIComponent(subscriberId)}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!updateRes.ok) {
+      const errText = await updateRes.text();
+      console.warn('⚠️ Novu subscriber update failed:', updateRes.status, errText);
+    }
+  } catch (err) {
+    console.warn('⚠️ Novu subscriber update exception:', err);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -327,6 +377,15 @@ export default async function handler(req, res) {
 
           // Use subscription ID as subscriber ID, fallback to email/uid if not available
           const subscriberId = oneSignalSubscriptionId;
+          if (!subscriberId) {
+            console.warn('⚠️ Missing OneSignal subscriptionId - skipping Novu credential update');
+            return res.status(200).json({
+              success: true,
+              user: userData,
+              token: token,
+              userSource: userSource
+            });
+          }
           const integrationIdentifier = process.env.NOVU_INTEGRATION_IDENTIFIER || process.env.NEXT_PUBLIC_NOVU_INTEGRATION_IDENTIFIER || null;
 
           const updateParams = {
@@ -348,6 +407,16 @@ export default async function handler(req, res) {
             playerId: oneSignalPlayerId,
             subscriptionId: oneSignalSubscriptionId,
             integrationIdentifier,
+          });
+
+          // Also create/update subscriber profile in Novu with contact info
+          await createOrUpdateNovuSubscriber({
+            subscriberId,
+            firstName: userData.displayName || userData.firstName || null,
+            lastName: userData.lastName || null,
+            email: userData.email || null,
+            phone: userData.phoneNumber || null,
+            novuSecretKey
           });
         } else {
           console.warn('⚠️ Novu secret key not found. Skipping Novu update.');

@@ -217,14 +217,60 @@ export const AuthProvider = ({ children }) => {
             // For Phone Auth: ERPNext API will get company_email from Employee data
             const emailForERPNext = user.email; // Always pass Firebase email (will be used for Microsoft SSO)
             
-            // Get OneSignal player ID and subscription ID if available
+            // Get OneSignal player ID and subscription ID if available + enrich profile
             let oneSignalPlayerId = null;
             let oneSignalSubscriptionId = null;
             if (typeof window !== 'undefined' && window.OneSignal) {
               try {
                 // Wait a bit for OneSignal to be fully initialized
                 await new Promise((resolve) => setTimeout(resolve, 1000));
-                
+
+                // OneSignal user profile setup from localStorage (email/phone/name/id)
+                const userEmail = localStorage.getItem('userEmail') || user?.email || null;
+                const phoneRaw = localStorage.getItem('userPhoneNumber') || user?.phoneNumber || null;
+                const employeeId = localStorage.getItem('employeeId') || user?.customProperties?.employeeId || user?.uid || null;
+                const userDisplayName = localStorage.getItem('userDisplayName') || user?.displayName || null;
+                const phoneFormatted = phoneRaw ? (phoneRaw.startsWith('+') ? phoneRaw : `+91${phoneRaw}`) : null;
+
+                if (userEmail) {
+                  try {
+                    await window.OneSignal.login(userEmail);
+                    await window.OneSignal.User.addEmail(userEmail);
+                    console.log('✅ Email set in OneSignal:', userEmail);
+                  } catch (emailErr) {
+                    console.warn('⚠️ Unable to set OneSignal email:', emailErr);
+                  }
+                } else {
+                  console.warn('⚠️ No email found - skipping OneSignal setup');
+                }
+
+                if (phoneFormatted) {
+                  try {
+                    await window.OneSignal.User.addSms(phoneFormatted);
+                    console.log('✅ Phone set in OneSignal:', phoneFormatted);
+                  } catch (smsErr) {
+                    console.warn('⚠️ Unable to set OneSignal phone:', smsErr);
+                  }
+                }
+
+                if (employeeId) {
+                  try {
+                    await window.OneSignal.User.addTag('EmployeeID', employeeId);
+                    console.log('✅ EmployeeID in OneSignal:', employeeId);
+                  } catch (tagErr) {
+                    console.warn('⚠️ Unable to tag EmployeeID in OneSignal:', tagErr);
+                  }
+                }
+
+                if (userDisplayName) {
+                  try {
+                    await window.OneSignal.User.addTag('Name', userDisplayName);
+                    console.log('✅ Name in OneSignal:', userDisplayName);
+                  } catch (tagErr) {
+                    console.warn('⚠️ Unable to tag Name in OneSignal:', tagErr);
+                  }
+                }
+
                 // Get player ID (onesignalId) - used for device tokens
                 oneSignalPlayerId = await window.OneSignal.User.onesignalId;
                 if (oneSignalPlayerId) {
@@ -235,6 +281,9 @@ export const AuthProvider = ({ children }) => {
                 oneSignalSubscriptionId = await window.OneSignal.User.PushSubscription.id;
                 if (oneSignalSubscriptionId) {
                   console.log('✅ OneSignal Subscription ID retrieved:', oneSignalSubscriptionId);
+                } else if (oneSignalPlayerId) {
+                  oneSignalSubscriptionId = oneSignalPlayerId;
+                  console.log('ℹ️ Using OneSignal player ID as fallback subscriber ID');
                 }
               } catch (error) {
                 console.warn('⚠️ Could not retrieve OneSignal IDs:', error);
