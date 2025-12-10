@@ -81,6 +81,18 @@ class MyDocument extends Document {
                 window.OneSignalReady = new Promise((resolve, reject) => {
                   OneSignalDeferred.push(async function(OneSignal) {
                     try {
+                      const currentOrigin = window.location.origin;
+                      const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
+                      
+                      // Only initialize OneSignal if not in development or if domain matches
+                      if (isLocalhost && !currentOrigin.includes(':8000')) {
+                        console.warn('⚠️ OneSignal: Skipping initialization - domain mismatch. OneSignal is configured for http://localhost:8000 but app is running on ' + currentOrigin);
+                        console.warn('⚠️ To fix: Update OneSignal dashboard settings to allow ' + currentOrigin + ' or run the app on port 8000');
+                        window.OneSignal = { initialized: false, skipped: true, reason: 'domain_mismatch' };
+                        resolve(null);
+                        return;
+                      }
+                      
                       await OneSignal.init({
                         appId: "ae84e191-00f5-445c-8e43-173709b8a553",
                         allowLocalhostAsSecureOrigin: true
@@ -93,6 +105,10 @@ class MyDocument extends Document {
                       resolve(OneSignal);
                     } catch (error) {
                       console.error('❌ OneSignal initialization failed:', error);
+                      if (error.message && error.message.includes('Can only be used on')) {
+                        console.warn('⚠️ OneSignal domain restriction error. Please update your OneSignal dashboard settings to allow:', window.location.origin);
+                        console.warn('⚠️ Go to: OneSignal Dashboard → Settings → Platforms → Web Push → Configure → Allowed Origins');
+                      }
                       window.OneSignal = { initialized: false, error: error };
                       reject(error);
                     }
