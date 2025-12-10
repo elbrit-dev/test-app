@@ -234,11 +234,17 @@ export const AuthProvider = ({ children }) => {
                 await new Promise((resolve) => setTimeout(resolve, 1000));
 
                 // OneSignal user profile setup from localStorage (email/phone/name/id)
-                const userEmail = localStorage.getItem('userEmail') || user?.email || null;
+                let userEmail = localStorage.getItem('userEmail') || user?.email || null;
                 const phoneRaw = localStorage.getItem('userPhoneNumber') || user?.phoneNumber || null;
                 const employeeId = localStorage.getItem('employeeId') || user?.customProperties?.employeeId || user?.uid || null;
                 const userDisplayName = localStorage.getItem('userDisplayName') || user?.displayName || null;
                 const phoneFormatted = phoneRaw ? (phoneRaw.startsWith('+') ? phoneRaw : `+91${phoneRaw}`) : null;
+
+                // Fallback: look up cached email by phone (for phone-only logins)
+                if (!userEmail && phoneFormatted) {
+                  const phoneEmailKey = `userEmail:${phoneFormatted}`;
+                  userEmail = localStorage.getItem(phoneEmailKey) || null;
+                }
 
                 if (userEmail) {
                   try {
@@ -351,6 +357,15 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userEmail', finalUser.email);
                   localStorage.setItem('userDisplayName', finalUser.displayName);
                   localStorage.setItem('userRole', finalUser.role);
+
+                  // Cache email by phone for phone-only logins so OneSignal can use it later
+                  const storedPhoneRaw = localStorage.getItem('userPhoneNumber') || finalUser.phoneNumber || '';
+                  const storedPhoneFormatted = storedPhoneRaw
+                    ? (storedPhoneRaw.startsWith('+') ? storedPhoneRaw : `+91${storedPhoneRaw}`)
+                    : '';
+                  if (finalUser.email && storedPhoneFormatted) {
+                    localStorage.setItem(`userEmail:${storedPhoneFormatted}`, finalUser.email);
+                  }
                   localStorage.setItem('userPhoneNumber', finalUser.phoneNumber || '');
                   localStorage.setItem('userAvatar', avatarSvg);
                   localStorage.setItem('userInitial', firstLetter);
