@@ -78,14 +78,25 @@ class MyDocument extends Document {
             dangerouslySetInnerHTML={{
               __html: `
                 window.OneSignalDeferred = window.OneSignalDeferred || [];
-                OneSignalDeferred.push(async function(OneSignal) {
-                  await OneSignal.init({
-                    appId: "ae84e191-00f5-445c-8e43-173709b8a553",
-                    allowLocalhostAsSecureOrigin: true
+                window.OneSignalReady = new Promise((resolve, reject) => {
+                  OneSignalDeferred.push(async function(OneSignal) {
+                    try {
+                      await OneSignal.init({
+                        appId: "ae84e191-00f5-445c-8e43-173709b8a553",
+                        allowLocalhostAsSecureOrigin: true
+                      });
+                      // Expose OneSignal to window for global access
+                      window.OneSignal = OneSignal;
+                      // Mark as initialized
+                      window.OneSignal.initialized = true;
+                      console.log('✅ OneSignal initialized and exposed to window');
+                      resolve(OneSignal);
+                    } catch (error) {
+                      console.error('❌ OneSignal initialization failed:', error);
+                      window.OneSignal = { initialized: false, error: error };
+                      reject(error);
+                    }
                   });
-                  // Expose OneSignal to window for global access
-                  window.OneSignal = OneSignal;
-                  console.log('✅ OneSignal initialized and exposed to window');
                 });
               `,
             }}
