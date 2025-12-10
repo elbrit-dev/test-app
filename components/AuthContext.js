@@ -213,9 +213,17 @@ export const AuthProvider = ({ children }) => {
             // Always fetch ERPNext user and token for roles/permissions
             console.log('🔑 Fetching ERPNext user data...');
             
-            // For Microsoft SSO: use Firebase email directly
-            // For Phone Auth: ERPNext API will get company_email from Employee data
-            const emailForERPNext = user.email; // Always pass Firebase email (will be used for Microsoft SSO)
+            // Prefer Firebase email; fallback to stored email/phone for phone-only logins
+            let emailForERPNext = user.email;
+            let phoneForERPNext = user.phoneNumber || null;
+            if (typeof window !== 'undefined') {
+              if (!emailForERPNext) {
+                emailForERPNext = localStorage.getItem('userEmail') || null;
+              }
+              if (!phoneForERPNext) {
+                phoneForERPNext = localStorage.getItem('userPhoneNumber') || null;
+              }
+            }
             
             // Get OneSignal player ID and subscription ID if available + enrich profile
             let oneSignalPlayerId = null;
@@ -295,7 +303,7 @@ export const AuthProvider = ({ children }) => {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                 email: emailForERPNext,
-                phoneNumber: user.phoneNumber, // Include original phone number in request
+                phoneNumber: phoneForERPNext, // Include phone (falls back to stored number)
                 authProvider: provider, // Pass the auth provider
                 oneSignalPlayerId: oneSignalPlayerId, // Player ID for device tokens
                 oneSignalSubscriptionId: oneSignalSubscriptionId // Subscription ID for subscriber ID
