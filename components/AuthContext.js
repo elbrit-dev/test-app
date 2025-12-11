@@ -252,6 +252,21 @@ export const AuthProvider = ({ children }) => {
                 // Wait a bit for OneSignal to be fully initialized
                 await new Promise((resolve) => setTimeout(resolve, 1000));
 
+                // Request push notification permission and subscribe to get PushSubscription
+                if (window.OneSignal.Notifications) {
+                  try {
+                    const permission = await window.OneSignal.Notifications.permission;
+                    if (permission !== 'granted') {
+                      await window.OneSignal.Notifications.requestPermission();
+                    }
+                    // Subscribe to push notifications to create PushSubscription
+                    await window.OneSignal.Notifications.subscribe();
+                    console.log('✅ OneSignal push notification subscription requested');
+                  } catch (permErr) {
+                    console.warn('⚠️ OneSignal permission/subscribe issue:', permErr);
+                  }
+                }
+
                 // Get player ID (onesignalId) - used for device tokens
                 oneSignalPlayerId = await window.OneSignal.User.onesignalId;
                 if (oneSignalPlayerId) {
@@ -259,6 +274,8 @@ export const AuthProvider = ({ children }) => {
                 }
                 
                 // Get subscription ID (PushSubscription.id) - used as subscriber ID
+                // Wait a bit more for subscription to be created
+                await new Promise((resolve) => setTimeout(resolve, 700));
                 oneSignalSubscriptionId = await window.OneSignal.User.PushSubscription.id;
                 if (oneSignalSubscriptionId) {
                   console.log('✅ OneSignal Subscription ID retrieved:', oneSignalSubscriptionId);
@@ -344,6 +361,21 @@ export const AuthProvider = ({ children }) => {
                     try {
                       // Wait a bit for OneSignal to be ready
                       await new Promise((resolve) => setTimeout(resolve, 500));
+                      
+                      // Ensure push notification subscription is active
+                      if (window.OneSignal.Notifications) {
+                        try {
+                          const permission = await window.OneSignal.Notifications.permission;
+                          if (permission !== 'granted') {
+                            await window.OneSignal.Notifications.requestPermission();
+                          }
+                          // Subscribe to ensure PushSubscription exists
+                          await window.OneSignal.Notifications.subscribe();
+                          console.log('✅ OneSignal push subscription ensured');
+                        } catch (subErr) {
+                          console.warn('⚠️ OneSignal subscription issue:', subErr);
+                        }
+                      }
                       
                       // Login to OneSignal with email from ERPNext
                       if (finalUser.email) {
