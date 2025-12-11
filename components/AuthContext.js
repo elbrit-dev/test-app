@@ -252,18 +252,18 @@ export const AuthProvider = ({ children }) => {
                 // Wait a bit for OneSignal to be fully initialized
                 await new Promise((resolve) => setTimeout(resolve, 1000));
 
-                // Request push notification permission and subscribe to get PushSubscription
+                // Request push notification permission to get PushSubscription
                 if (window.OneSignal.Notifications) {
                   try {
                     const permission = await window.OneSignal.Notifications.permission;
                     if (permission !== 'granted') {
                       await window.OneSignal.Notifications.requestPermission();
+                      console.log('✅ OneSignal push notification permission requested');
+                    } else {
+                      console.log('✅ OneSignal push notification permission already granted');
                     }
-                    // Subscribe to push notifications to create PushSubscription
-                    await window.OneSignal.Notifications.requestPermission();;
-                    console.log('✅ OneSignal push notification subscription requested');
                   } catch (permErr) {
-                    console.warn('⚠️ OneSignal permission/subscribe issue:', permErr);
+                    console.warn('⚠️ OneSignal permission request issue:', permErr);
                   }
                 }
 
@@ -362,18 +362,18 @@ export const AuthProvider = ({ children }) => {
                       // Wait a bit for OneSignal to be ready
                       await new Promise((resolve) => setTimeout(resolve, 500));
                       
-                      // Ensure push notification subscription is active
+                      // Ensure push notification permission is granted
                       if (window.OneSignal.Notifications) {
                         try {
                           const permission = await window.OneSignal.Notifications.permission;
                           if (permission !== 'granted') {
                             await window.OneSignal.Notifications.requestPermission();
+                            console.log('✅ OneSignal push notification permission requested');
+                          } else {
+                            console.log('✅ OneSignal push notification permission already granted');
                           }
-                          // Subscribe to ensure PushSubscription exists
-                          await window.OneSignal.Notifications.subscribe();
-                          console.log('✅ OneSignal push subscription ensured');
-                        } catch (subErr) {
-                          console.warn('⚠️ OneSignal subscription issue:', subErr);
+                        } catch (permErr) {
+                          console.warn('⚠️ OneSignal permission request issue:', permErr);
                         }
                       }
                       
