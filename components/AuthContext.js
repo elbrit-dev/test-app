@@ -99,6 +99,24 @@ export const AuthProvider = ({ children }) => {
     return 'email';
   };
 
+  // Helper function to clean up phone-keyed cache entries from localStorage
+  const cleanupPhoneKeyedEntries = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          // Remove any keys that match userEmail:+phone or employeeId:+phone pattern
+          if (key.startsWith('userEmail:+') || key.startsWith('employeeId:+')) {
+            localStorage.removeItem(key);
+            console.log('🧹 Removed phone-keyed cache entry:', key);
+          }
+        });
+      } catch (error) {
+        console.warn('⚠️ Error cleaning up phone-keyed entries:', error);
+      }
+    }
+  };
+
   // Function to load auth state from localStorage
   const loadAuthFromStorage = () => {
     if (typeof window !== 'undefined') {
@@ -332,6 +350,9 @@ export const AuthProvider = ({ children }) => {
               
               if (typeof window !== 'undefined') {
                 try {
+                  // Clean up any old phone-keyed cache entries
+                  cleanupPhoneKeyedEntries();
+                  
                   // Store ERPNext auth data
                   localStorage.setItem('erpnextAuthToken', erpnextToken);
                   localStorage.setItem('erpnextUser', JSON.stringify(finalUser));
@@ -353,15 +374,6 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userEmail', finalUser.email);
                   localStorage.setItem('userDisplayName', finalUser.displayName);
                   localStorage.setItem('userRole', finalUser.role);
-
-                  // Cache email by phone for phone-only logins so OneSignal can use it later
-                  const storedPhoneRaw = localStorage.getItem('userPhoneNumber') || finalUser.phoneNumber || '';
-                  const storedPhoneFormatted = storedPhoneRaw
-                    ? (storedPhoneRaw.startsWith('+') ? storedPhoneRaw : `+91${storedPhoneRaw}`)
-                    : '';
-                  if (finalUser.email && storedPhoneFormatted) {
-                    localStorage.setItem(`userEmail:${storedPhoneFormatted}`, finalUser.email);
-                  }
                   localStorage.setItem('userPhoneNumber', finalUser.phoneNumber || '');
                   localStorage.setItem('userAvatar', avatarSvg);
                   localStorage.setItem('userInitial', firstLetter);
