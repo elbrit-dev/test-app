@@ -234,18 +234,13 @@ export const AuthProvider = ({ children }) => {
                 await new Promise((resolve) => setTimeout(resolve, 1000));
 
                 // OneSignal user profile setup from localStorage (email/phone/name/id)
+                // Use values directly - no formatting needed
                 let userEmail = localStorage.getItem('userEmail') || user?.email || null;
                 const phoneRaw = localStorage.getItem('userPhoneNumber') || user?.phoneNumber || null;
                 const employeeId = localStorage.getItem('employeeId') || user?.customProperties?.employeeId || user?.uid || null;
                 const userDisplayName = localStorage.getItem('userDisplayName') || user?.displayName || null;
-                const phoneFormatted = phoneRaw ? (phoneRaw.startsWith('+') ? phoneRaw : `+91${phoneRaw}`) : null;
 
-                // Fallback: look up cached email by phone (for phone-only logins)
-                if (!userEmail && phoneFormatted) {
-                  const phoneEmailKey = `userEmail:${phoneFormatted}`;
-                  userEmail = localStorage.getItem(phoneEmailKey) || null;
-                }
-
+                // Login to OneSignal with email if available
                 if (userEmail) {
                   try {
                     await window.OneSignal.login(userEmail);
@@ -254,19 +249,19 @@ export const AuthProvider = ({ children }) => {
                   } catch (emailErr) {
                     console.warn('⚠️ Unable to set OneSignal email:', emailErr);
                   }
-                } else {
-                  console.warn('⚠️ No email found - skipping OneSignal setup');
                 }
 
-                if (phoneFormatted) {
+                // Add phone to OneSignal (use raw value - no formatting)
+                if (phoneRaw) {
                   try {
-                    await window.OneSignal.User.addSms(phoneFormatted);
-                    console.log('✅ Phone set in OneSignal:', phoneFormatted);
+                    await window.OneSignal.User.addSms(phoneRaw);
+                    console.log('✅ Phone set in OneSignal:', phoneRaw);
                   } catch (smsErr) {
                     console.warn('⚠️ Unable to set OneSignal phone:', smsErr);
                   }
                 }
 
+                // Add EmployeeID tag
                 if (employeeId) {
                   try {
                     await window.OneSignal.User.addTag('EmployeeID', employeeId);
@@ -276,6 +271,7 @@ export const AuthProvider = ({ children }) => {
                   }
                 }
 
+                // Add Name tag
                 if (userDisplayName) {
                   try {
                     await window.OneSignal.User.addTag('Name', userDisplayName);
