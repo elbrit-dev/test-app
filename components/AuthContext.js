@@ -243,61 +243,14 @@ export const AuthProvider = ({ children }) => {
               }
             }
             
-            // Get OneSignal player ID and subscription ID if available + enrich profile
+            // Get OneSignal player ID and subscription ID only (needed for API call)
+            // Profile enrichment will happen AFTER ERPNext response with fresh data
             let oneSignalPlayerId = null;
             let oneSignalSubscriptionId = null;
             if (typeof window !== 'undefined' && window.OneSignal) {
               try {
                 // Wait a bit for OneSignal to be fully initialized
                 await new Promise((resolve) => setTimeout(resolve, 1000));
-
-                // OneSignal user profile setup from localStorage (email/phone/name/id)
-                // Use values directly - no formatting needed
-                let userEmail = localStorage.getItem('userEmail') || user?.email || null;
-                const phoneRaw = localStorage.getItem('userPhoneNumber') || user?.phoneNumber || null;
-                const employeeId = localStorage.getItem('employeeId') || user?.customProperties?.employeeId || user?.uid || null;
-                const userDisplayName = localStorage.getItem('userDisplayName') || user?.displayName || null;
-
-                // Login to OneSignal with email if available
-                if (userEmail) {
-                  try {
-                    await window.OneSignal.login(userEmail);
-                    await window.OneSignal.User.addEmail(userEmail);
-                    console.log('✅ Email set in OneSignal:', userEmail);
-                  } catch (emailErr) {
-                    console.warn('⚠️ Unable to set OneSignal email:', emailErr);
-                  }
-                }
-
-                // Add phone to OneSignal (use raw value - no formatting)
-                if (phoneRaw) {
-                  try {
-                    await window.OneSignal.User.addSms(phoneRaw);
-                    console.log('✅ Phone set in OneSignal:', phoneRaw);
-                  } catch (smsErr) {
-                    console.warn('⚠️ Unable to set OneSignal phone:', smsErr);
-                  }
-                }
-
-                // Add EmployeeID tag
-                if (employeeId) {
-                  try {
-                    await window.OneSignal.User.addTag('EmployeeID', employeeId);
-                    console.log('✅ EmployeeID in OneSignal:', employeeId);
-                  } catch (tagErr) {
-                    console.warn('⚠️ Unable to tag EmployeeID in OneSignal:', tagErr);
-                  }
-                }
-
-                // Add Name tag
-                if (userDisplayName) {
-                  try {
-                    await window.OneSignal.User.addTag('Name', userDisplayName);
-                    console.log('✅ Name in OneSignal:', userDisplayName);
-                  } catch (tagErr) {
-                    console.warn('⚠️ Unable to tag Name in OneSignal:', tagErr);
-                  }
-                }
 
                 // Get player ID (onesignalId) - used for device tokens
                 oneSignalPlayerId = await window.OneSignal.User.onesignalId;
@@ -350,8 +303,6 @@ export const AuthProvider = ({ children }) => {
               
               if (typeof window !== 'undefined') {
                 try {
-                  // Clean up any old phone-keyed cache entries
-                  cleanupPhoneKeyedEntries();
                   
                   // Store ERPNext auth data
                   localStorage.setItem('erpnextAuthToken', erpnextToken);
@@ -387,6 +338,57 @@ export const AuthProvider = ({ children }) => {
                     userEmail: finalUser.email,
                     userRole: finalUser.role
                   });
+                  
+                  // Update OneSignal profile with fresh ERPNext data
+                  if (typeof window !== 'undefined' && window.OneSignal) {
+                    try {
+                      // Wait a bit for OneSignal to be ready
+                      await new Promise((resolve) => setTimeout(resolve, 500));
+                      
+                      // Login to OneSignal with email from ERPNext
+                      if (finalUser.email) {
+                        try {
+                          await window.OneSignal.login(finalUser.email);
+                          await window.OneSignal.User.addEmail(finalUser.email);
+                          console.log('✅ OneSignal email updated from ERPNext:', finalUser.email);
+                        } catch (emailErr) {
+                          console.warn('⚠️ Unable to update OneSignal email:', emailErr);
+                        }
+                      }
+                      
+                      // Add phone to OneSignal (use raw value - no formatting)
+                      if (finalUser.phoneNumber) {
+                        try {
+                          await window.OneSignal.User.addSms(finalUser.phoneNumber);
+                          console.log('✅ OneSignal phone updated from ERPNext:', finalUser.phoneNumber);
+                        } catch (smsErr) {
+                          console.warn('⚠️ Unable to update OneSignal phone:', smsErr);
+                        }
+                      }
+                      
+                      // Add EmployeeID tag (use fresh employeeId from ERPNext)
+                      if (employeeId) {
+                        try {
+                          await window.OneSignal.User.addTag('EmployeeID', employeeId);
+                          console.log('✅ OneSignal EmployeeID updated from ERPNext:', employeeId);
+                        } catch (tagErr) {
+                          console.warn('⚠️ Unable to update OneSignal EmployeeID tag:', tagErr);
+                        }
+                      }
+                      
+                      // Add Name tag
+                      if (finalUser.displayName) {
+                        try {
+                          await window.OneSignal.User.addTag('Name', finalUser.displayName);
+                          console.log('✅ OneSignal Name updated from ERPNext:', finalUser.displayName);
+                        } catch (tagErr) {
+                          console.warn('⚠️ Unable to update OneSignal Name tag:', tagErr);
+                        }
+                      }
+                    } catch (oneSignalErr) {
+                      console.warn('⚠️ Error updating OneSignal profile from ERPNext data:', oneSignalErr);
+                    }
+                  }
                 } catch (storageError) {
                   console.warn('Failed to save auth data to localStorage:', storageError);
                 }
