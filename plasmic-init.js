@@ -26,6 +26,7 @@ const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ss
 const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
 const CircleSkeleton = dynamic(() => import("./components/CircleSkeleton"), { ssr: false, loading: () => null });
 const RavenChatEmbed = dynamic(() => import("./components/RavenChatEmbed"), { ssr: false, loading: () => null });
+const NovuInbox = dynamic(() => import("./components/NovuInbox"), { ssr: false, loading: () => null });
 const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
 const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
@@ -4079,4 +4080,49 @@ PLASMIC.registerComponent(PrimeTimeline, {
   classNameProp: "className",
   defaultStyles: {},
   providesData: true
+});
+
+// Register the Novu Inbox component
+PLASMIC.registerComponent(NovuInbox, {
+  name: "NovuInbox",
+  displayName: "Novu Inbox",
+  description: "A notification inbox component for Novu that displays real-time notifications for authenticated users using their employeeId as subscriber ID",
+  props: {
+    applicationIdentifier: {
+      type: "string",
+      description: "Novu application identifier. If not provided, uses NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER from env",
+      defaultValue: null
+    },
+    subscriberId: {
+      type: "string",
+      description: "Subscriber ID. If not provided, uses employeeId from AuthContext or localStorage",
+      defaultValue: null
+    },
+    backendUrl: {
+      type: "string",
+      description: "Backend URL for EU region. If not provided, uses NEXT_PUBLIC_NOVU_BACKEND_URL from env",
+      defaultValue: null
+    },
+    socketUrl: {
+      type: "string",
+      description: "Socket URL for EU region. If not provided, uses NEXT_PUBLIC_NOVU_SOCKET_URL from env",
+      defaultValue: null
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    keyless: {
+      type: "boolean",
+      description: "Use keyless mode for testing (temporary data, expires in 24h)",
+      defaultValue: false
+    }
+  },
+  importPath: "./components/NovuInbox"
 });
