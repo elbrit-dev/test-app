@@ -260,7 +260,7 @@ export const AuthProvider = ({ children }) => {
                       await window.OneSignal.Notifications.requestPermission();
                     }
                     // Subscribe to push notifications to create PushSubscription
-                    await window.OneSignal.Notifications.subscribe();
+                    await window.OneSignal.Notifications.requestPermission();;
                     console.log('✅ OneSignal push notification subscription requested');
                   } catch (permErr) {
                     console.warn('⚠️ OneSignal permission/subscribe issue:', permErr);
