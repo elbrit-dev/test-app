@@ -372,8 +372,11 @@ export default async function handler(req, res) {
       authProvider: userData.authProvider
     });
 
-    // Create/update Novu subscriber if subscription ID is present
-    if (oneSignalSubscriptionId) {
+    // Get employeeId from ERPNext user data for subscriber ID
+    const employeeId = userData?.customProperties?.employeeId || userData?.uid || userData?.employeeData?.name || null;
+    
+    // Create/update Novu subscriber if employeeId is present
+    if (employeeId) {
       try {
         const novuSecretKey = process.env.NOVU_SECRET_KEY || process.env.NEXT_PUBLIC_NOVU_SECRET_KEY;
         
@@ -384,8 +387,8 @@ export default async function handler(req, res) {
             // serverURL: "https://eu.api.novu.co",
           });
 
-          // Use subscription ID as subscriber ID
-          const subscriberId = oneSignalSubscriptionId;
+          // Use employeeId as subscriber ID
+          const subscriberId = employeeId;
           
           // First, create/update subscriber profile in Novu with contact info
           await createOrUpdateNovuSubscriber({
@@ -426,7 +429,7 @@ export default async function handler(req, res) {
           }
 
           console.log('✅ Novu subscriber created/updated:', {
-            subscriberId,
+            subscriberId: employeeId,
             email: userData.email,
             phone: userData.phoneNumber,
             displayName: userData.displayName
@@ -439,7 +442,7 @@ export default async function handler(req, res) {
         // Don't fail the auth request if Novu update fails
       }
     } else {
-      console.warn('⚠️ OneSignal subscription ID not available - skipping Novu subscriber creation');
+      console.warn('⚠️ Employee ID not available from ERPNext - skipping Novu subscriber creation');
     }
 
     return res.status(200).json({
