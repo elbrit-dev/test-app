@@ -15,6 +15,7 @@ import { useAuth } from './AuthContext';
  * @param {string} props.className - Additional CSS classes
  * @param {Object} props.style - Inline styles
  * @param {boolean} props.keyless - Use keyless mode for testing (default: false)
+ * @param {boolean} props.allowPreferences - Show preferences panel (default: true)
  */
 const NovuInbox = ({
   applicationIdentifier = null,
@@ -24,6 +25,7 @@ const NovuInbox = ({
   className = '',
   style = {},
   keyless = false,
+  allowPreferences = true,
   ...otherProps
 }) => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -116,6 +118,7 @@ const NovuInbox = ({
   const inboxProps = {
     applicationIdentifier: appIdentifier,
     subscriber: finalSubscriberId,
+    ...(allowPreferences === false && { preferences: false }),
     ...otherProps
   };
 
@@ -127,8 +130,13 @@ const NovuInbox = ({
     inboxProps.socketUrl = finalSocketUrl;
   }
 
+  // Combine styles if we need to hide preferences
+  const containerStyle = !allowPreferences 
+    ? { ...style, '--novu-preferences-display': 'none' }
+    : style;
+
   return (
-    <div className={className} style={style}>
+    <div className={className} style={containerStyle}>
       <Inbox {...inboxProps} />
     </div>
   );
