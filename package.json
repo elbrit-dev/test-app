@@ -11,7 +11,8 @@
     "lint": "next lint",
     "export": "next build && next export",
     "icons": "node scripts/generate-icons.js",
-    "prebuild": "node scripts/generate-icons.js"
+    "prebuild": "node scripts/generate-icons.js",
+    "check:env": "node scripts/check-env-size.js"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",

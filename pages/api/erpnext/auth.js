@@ -402,29 +402,29 @@ export default async function handler(req, res) {
 
           // Then update credentials with OneSignal device tokens if player ID is available
           if (oneSignalPlayerId) {
-            const integrationIdentifier = process.env.NOVU_INTEGRATION_IDENTIFIER || process.env.NEXT_PUBLIC_NOVU_INTEGRATION_IDENTIFIER || null;
+          const integrationIdentifier = process.env.NOVU_INTEGRATION_IDENTIFIER || process.env.NEXT_PUBLIC_NOVU_INTEGRATION_IDENTIFIER || null;
 
-            const updateParams = {
-              providerId: ChatOrPushProviderEnum.OneSignal,
-              credentials: {
-                deviceTokens: [oneSignalPlayerId], // Use player ID (onesignalId) for device tokens
-              },
-            };
+          const updateParams = {
+            providerId: ChatOrPushProviderEnum.OneSignal,
+            credentials: {
+              deviceTokens: [oneSignalPlayerId], // Use player ID (onesignalId) for device tokens
+            },
+          };
 
-            // Add integrationIdentifier if provided
-            if (integrationIdentifier) {
-              updateParams.integrationIdentifier = integrationIdentifier;
-            }
+          // Add integrationIdentifier if provided
+          if (integrationIdentifier) {
+            updateParams.integrationIdentifier = integrationIdentifier;
+          }
 
-            await novu.subscribers.credentials.update(updateParams, subscriberId);
+          await novu.subscribers.credentials.update(updateParams, subscriberId);
 
-            console.log('✅ Novu subscriber credentials updated successfully:', {
-              subscriberId,
-              playerId: oneSignalPlayerId,
-              subscriptionId: oneSignalSubscriptionId,
-              integrationIdentifier,
-            });
-          } else {
+          console.log('✅ Novu subscriber credentials updated successfully:', {
+            subscriberId,
+            playerId: oneSignalPlayerId,
+            subscriptionId: oneSignalSubscriptionId,
+            integrationIdentifier,
+          });
+        } else {
             console.log('ℹ️ OneSignal player ID not available - subscriber created but credentials not updated');
           }
 
