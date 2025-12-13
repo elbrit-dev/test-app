@@ -15,7 +15,7 @@ import { useAuth } from './AuthContext';
  * @param {string} props.className - Additional CSS classes
  * @param {Object} props.style - Inline styles
  * @param {boolean} props.keyless - Use keyless mode for testing (default: false)
- * @param {boolean} props.allowPreferences - Show preferences panel (default: true)
+ * @param {boolean} props.allowPreferences - Show preferences panel (default: false)
  */
 const NovuInbox = ({
   applicationIdentifier = null,
@@ -25,7 +25,7 @@ const NovuInbox = ({
   className = '',
   style = {},
   keyless = false,
-  allowPreferences = true,
+  allowPreferences = false,
   ...otherProps
 }) => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -130,13 +130,32 @@ const NovuInbox = ({
     inboxProps.socketUrl = finalSocketUrl;
   }
 
-  // Combine styles if we need to hide preferences
-  const containerStyle = !allowPreferences 
-    ? { ...style, '--novu-preferences-display': 'none' }
-    : style;
+  // Hide preferences panel if disabled
+  useEffect(() => {
+    if (!allowPreferences && mounted) {
+      // Inject CSS to hide preferences panel
+      const styleId = 'novu-hide-preferences';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          [data-test-id="notification-preferences"],
+          [class*="notification-preferences"],
+          [class*="NotificationPreferences"],
+          [class*="preferences-panel"],
+          button[aria-label*="preferences" i],
+          button[aria-label*="settings" i],
+          [role="button"][aria-label*="preferences" i] {
+            display: none !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+  }, [allowPreferences, mounted]);
 
   return (
-    <div className={className} style={containerStyle}>
+    <div className={className} style={style}>
       <Inbox {...inboxProps} />
     </div>
   );
